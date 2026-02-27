@@ -1,0 +1,6 @@
+pyrogram
+tgcrypto
+pillow
+motor
+pymongo
+dnspython
