@@ -148,7 +148,7 @@ async def processor(client, message):
         logo = Image.open(io.BytesIO(data['logo_bytes'])).convert("RGBA")
         
         if data['is_sticker']:
-            new_w = int(m_w * 1.5)
+            new_w = int(m_w * 1.3)
             new_h = int(logo.size[1] * (new_w / logo.size[0]))
             logo = logo.resize((new_w, new_h), Image.LANCZOS)
             pos, opac = ((m_w - new_w) // 2, (m_h - new_h) // 2), 0.20
