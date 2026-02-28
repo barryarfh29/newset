@@ -12,7 +12,7 @@ API_ID = int(os.getenv('API_ID', '36479019'))
 API_HASH = os.getenv('API_HASH', '816d1a0589b0cb1f9d147ba4d07ca576')
 BOT_TOKEN = os.getenv('BOT_TOKEN', '8532883919:AAH1Khwvzctscyk7ruTsVe8ThJd__r1-uIk')
 MONGO_URL = os.getenv('MONGO_URL', 'mongodb+srv://Nadira:Nadira31@cluster0.15j5b.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
-ADMIN_IDS = [int(id.strip()) for id in os.getenv('ADMIN_IDS', '1423164174').split(',')]
+ADMIN_IDS = [int(id.strip()) for id in os.getenv('ADMIN_IDS', '1423164174,655888882').split(',')]
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
