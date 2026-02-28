@@ -74,7 +74,6 @@ async def callbacks(client, callback_query):
     elif callback_query.data == "rcn":
         await settings_col.update_one({"id": "config"}, {"$set": {"counter": 0}})
         await callback_query.answer("Counter di-reset ke 0!", show_alert=True)
-        # Menampilkan kembali menu dengan data terbaru
         data = await get_db()
         target_name = data.get('target_chat', 'Belum Diatur')
         menu = InlineKeyboardMarkup([
@@ -142,7 +141,6 @@ async def processor(client, message):
     if not data['logo_bytes']: 
         return
     
-    # Tentukan tujuan: jika target_chat ada gunakan itu, jika tidak gunakan chat asal
     chat_tujuan = data.get('target_chat') if data.get('target_chat') else message.chat.id
 
     try:
@@ -185,7 +183,7 @@ async def processor(client, message):
         markup = InlineKeyboardMarkup(grid) if grid else None
         
         # 5. KIRIM HANYA SEKALI
-        # Ambil nilai counter terbaru sebelum kirim
+        # Ambil counter saat ini dan tambahkan 1 untuk tampilan caption
         current_counter = data['counter'] + 1
         await client.send_photo(
             chat_id=chat_tujuan, 
@@ -194,14 +192,15 @@ async def processor(client, message):
             reply_markup=markup
         )
         
-        # 6. Update database & Hapus pesan asli
+        # 6. Update database & Hapus pesan asli secara otomatis
         await settings_col.update_one({"id": "config"}, {"$inc": {"counter": 1}})
         
         try:
-            await message.delete()
-        except:
-            pass # Gagal hapus tidak masalah, yang penting tidak posting dobel
+            await message.delete() # Hapus pesan asal tanpa syarat IF
+        except Exception as e_del:
+            logger.error(f"Gagal hapus pesan: {e_del}")
 
     except Exception as e:
-        logger.error(f"Error: {e}")
+        logger.error(f"Error proses: {e}")
+
 app.run()
