@@ -135,18 +135,24 @@ async def handle_settings(client, message):
 
 @app.on_message(filters.photo | filters.document)
 async def processor(client, message):
-    if message.chat.type.value == "private" and message.from_user.id not in ADMIN_IDS: return
-    data = await get_db()
-    if not data['logo_bytes']: return
+    if message.chat.type.value == "private" and message.from_user.id not in ADMIN_IDS: 
+        return
     
+    data = await get_db()
+    if not data['logo_bytes']: 
+        return
+    
+    # Tentukan tujuan: jika target_chat ada gunakan itu, jika tidak gunakan chat asal
     chat_tujuan = data.get('target_chat') if data.get('target_chat') else message.chat.id
 
     try:
+        # 1. Download dan Proses Gambar
         photo_bytes = await client.download_media(message, in_memory=True)
         main_img = Image.open(io.BytesIO(photo_bytes.getbuffer())).convert("RGBA")
         m_w, m_h = main_img.size
         logo = Image.open(io.BytesIO(data['logo_bytes'])).convert("RGBA")
         
+        # 2. Atur Ukuran Watermark
         if data['is_sticker']:
             new_w = int(m_w * 1.3)
             new_h = int(logo.size[1] * (new_w / logo.size[0]))
@@ -162,40 +168,40 @@ async def processor(client, message):
         logo.putalpha(alpha)
         main_img.paste(logo, pos, logo)
         
+        # 3. Simpan ke Memory
         output = io.BytesIO()
         output.name = "res.jpg"
         main_img.convert("RGB").save(output, format="JPEG", quality=85)
         output.seek(0)
         
+        # 4. Siapkan Tombol
         raw_btns = data.get('buttons', [])
-        grid = []
-        for i in range(0, len(raw_btns), 2):
-            row = [InlineKeyboardButton(raw_btns[i]['name'], url=raw_btns[i]['url'])]
-            if i + 1 < len(raw_btns):
-                row.append(InlineKeyboardButton(raw_btns[i+1]['name'], url=raw_btns[i+1]['url']))
-            grid.append(row)
-        
+        grid = [
+            [InlineKeyboardButton(raw_btns[i]['name'], url=raw_btns[i]['url']),
+             InlineKeyboardButton(raw_btns[i+1]['name'], url=raw_btns[i+1]['url'])]
+            if i + 1 < len(raw_btns) else [InlineKeyboardButton(raw_btns[i]['name'], url=raw_btns[i]['url'])]
+            for i in range(0, len(raw_btns), 2)
+        ]
         markup = InlineKeyboardMarkup(grid) if grid else None
         
-        await settings_col.update_one({"id": "config"}, {"$inc": {"counter": 1}})
-        await client.send_photo(chat_tujuan, output, caption=f"● {data['counter']+1}\n{data['caption']}", reply_markup=markup)
+        # 5. KIRIM HANYA SEKALI
+        # Ambil nilai counter terbaru sebelum kirim
+        current_counter = data['counter'] + 1
+        await client.send_photo(
+            chat_id=chat_tujuan, 
+            photo=output, 
+            caption=f"● {current_counter}\n{data['caption']}", 
+            reply_markup=markup
+        )
         
-# Mengirim foto
-        await client.send_photo(chat_tujuan, output, caption=f"● {data['counter']+1}\n{data['caption']}", reply_markup=markup)
-
-        # Update counter ke database
+        # 6. Update database & Hapus pesan asli
         await settings_col.update_one({"id": "config"}, {"$inc": {"counter": 1}})
-
-        # Menghapus pesan asli secara otomatis
+        
         try:
             await message.delete()
-        except Exception as e:
-            logger.error(f"Gagal menghapus pesan: {e}")
+        except:
+            pass # Gagal hapus tidak masalah, yang penting tidak posting dobel
 
     except Exception as e:
-        logger.error(f"Error pada proses watermark: {e}")
-            
-    except Exception as e:
-        logger.error(e)
-
+        logger.error(f"Error: {e}")
 app.run()
