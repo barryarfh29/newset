@@ -180,8 +180,20 @@ async def processor(client, message):
         await settings_col.update_one({"id": "config"}, {"$inc": {"counter": 1}})
         await client.send_photo(chat_tujuan, output, caption=f"● {data['counter']+1}\n{data['caption']}", reply_markup=markup)
         
-        if chat_tujuan == message.chat.id:
+# Mengirim foto
+        await client.send_photo(chat_tujuan, output, caption=f"● {data['counter']+1}\n{data['caption']}", reply_markup=markup)
+
+        # Update counter ke database
+        await settings_col.update_one({"id": "config"}, {"$inc": {"counter": 1}})
+
+        # Menghapus pesan asli secara otomatis
+        try:
             await message.delete()
+        except Exception as e:
+            logger.error(f"Gagal menghapus pesan: {e}")
+
+    except Exception as e:
+        logger.error(f"Error pada proses watermark: {e}")
             
     except Exception as e:
         logger.error(e)
